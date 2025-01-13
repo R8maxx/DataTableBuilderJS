@@ -3,7 +3,6 @@
 /*globals $:false */
 
 function initDataTableWithFilters(containerSelector, tableId, columns, options = {}) {
-	"use strict";
 
 	// Construir la estructura básica de la tabla
 	const table = $(`
@@ -57,7 +56,11 @@ function initDataTableWithFilters(containerSelector, tableId, columns, options =
 			api.columns().every(function(colIdx) {
 				const column = this;
 				const colSettings = columns[colIdx];
-
+				
+				// Obtener el tipo de filtro de la columna actual
+				const filterType = columns[colIdx].filterType;
+				
+				// Añadir funcionalidad a los filtros
 				if (colSettings.filterType === 'select') {
 					const select = $(`select[data-col-index='${colIdx}']`);
 					const uniqueData = new Set();
@@ -91,6 +94,30 @@ function initDataTableWithFilters(containerSelector, tableId, columns, options =
 							column.search('').draw();
 						}
 					});
+				}else if (filterType === 'date') {
+					// Inicializar el DatePicker en el input correspondiente
+					$('input', this.footer()).datepicker({
+						dateFormat: 'yy-mm-dd',
+						onSelect: function(dateText) {
+							// Filtrar la columna por la fecha seleccionada
+							column.search(dateText).draw();
+						},
+						changeMonth: true,
+						changeYear: true
+					});
+		
+					// Añadir evento para limpiar el filtro al borrar el input
+					$('input', this.footer()).on('keyup change clear', function() {
+						if ($(this).val() === '') {
+							column.search('').draw();
+						}
+					});
+				} else if (filterType === 'input') {
+					$('input', this.footer()).on('keyup change clear', function() {
+						if (column.search() !== this.value) {
+							column.search(this.value).draw();
+						}
+					});
 				}
 			});
 		},
@@ -101,40 +128,6 @@ function initDataTableWithFilters(containerSelector, tableId, columns, options =
 
 	// Inicializa el DataTable
 	const dataTable = $(`#${tableId}`).DataTable(config);
-
-	// Añadir funcionalidad a los filtros
-	dataTable.columns().every(function(colIdx) {
-		const that = this;
-
-		// Obtener el tipo de filtro de la columna actual
-		const filterType = columns[colIdx].filterType;
-
-		if (filterType === 'date') {
-			// Inicializar el DatePicker en el input correspondiente
-			$('input', this.footer()).datepicker({
-				dateFormat: 'yy-mm-dd',
-				onSelect: function(dateText) {
-					// Filtrar la columna por la fecha seleccionada
-					that.search(dateText).draw();
-				},
-				changeMonth: true,
-				changeYear: true
-			});
-
-			// Añadir evento para limpiar el filtro al borrar el input
-			$('input', this.footer()).on('keyup change clear', function() {
-				if ($(this).val() === '') {
-					that.search('').draw();
-				}
-			});
-		} else if (filterType === 'input') {
-			$('input', this.footer()).on('keyup change clear', function() {
-				if (that.search() !== this.value) {
-					that.search(this.value).draw();
-				}
-			});
-		}
-	});
 
 	return dataTable;
 }
